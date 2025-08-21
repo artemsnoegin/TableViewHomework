@@ -14,8 +14,7 @@ struct ProgrammingLanguage {
     var isFavorite: Bool
 }
 
-let defaultIcon = UIImage(systemName: "wrench.and.screwdriver.fill")?.withTintColor(.black, renderingMode: .alwaysOriginal) ?? UIImage()
-
+private let defaultIcon = UIImage(systemName: "wrench.and.screwdriver.fill")?.withTintColor(.black, renderingMode: .alwaysOriginal) ?? UIImage()
 
 let programmingLanguages: [ProgrammingLanguage] = [
     ProgrammingLanguage(

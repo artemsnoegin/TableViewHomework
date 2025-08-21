@@ -7,16 +7,17 @@
 
 import UIKit
 
-class TableViewController: UIViewController, UITableViewDelegate, UITableViewDataSource{
-
-    private let tableView = UITableView(frame: .zero, style: .insetGrouped)
-    
-    private enum Section: Int, CaseIterable {
-        case indexes
-        case languages
-    }
+class TableViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, DataUpdaterDelegate {
     
     private var allLanguages = programmingLanguages
+    private var deletedLanguages = [ProgrammingLanguage]()
+    
+    private let tableView = UITableView(frame: .zero, style: .grouped)
+    
+    private enum Section: Int, CaseIterable {
+        case languages
+        case indexes
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -30,6 +31,7 @@ class TableViewController: UIViewController, UITableViewDelegate, UITableViewDat
         navigationItem.title = "Programming Languages"
         
         navigationItem.rightBarButtonItem = editButtonItem
+        navigationItem.leftBarButtonItem = UIBarButtonItem(image: UIImage(systemName: "plus"), style: .plain, target: self, action: #selector(restoreLanguage))
     }
     
     override func setEditing(_ editing: Bool, animated: Bool) {
@@ -37,10 +39,31 @@ class TableViewController: UIViewController, UITableViewDelegate, UITableViewDat
         tableView.setEditing(editing, animated: animated)
     }
     
+    @objc private func restoreLanguage() {
+        let nextVC = CollectionViewController(data: deletedLanguages)
+        nextVC.dataUpdater = self
+        navigationController?.pushViewController(nextVC, animated: true)
+    }
+    
+    func restoreItem(item: ProgrammingLanguage) {
+        
+        allLanguages.append(item)
+        deletedLanguages.removeAll { programmingLanguage in
+            programmingLanguage.name == item.name
+        }
+        let newIndexPath = IndexPath(row: allLanguages.count - 1, section: Section.languages.rawValue)
+        
+        tableView.performBatchUpdates {
+                tableView.insertRows(at: [newIndexPath], with: .automatic)
+                // Обновляем секцию indexes, чтобы индексы пересчитались
+                tableView.reloadSections([Section.indexes.rawValue], with: .automatic)
+            }
+    }
+    
     private func configureTableView() {
         tableView.delegate = self
         tableView.dataSource = self
-        tableView.register(ProgrammingLanguageCell.self, forCellReuseIdentifier: "ProgrammingLanguageCell")
+        tableView.register(TableViewCell.self, forCellReuseIdentifier: TableViewCell.reuseIdentifier)
         
         tableView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(tableView)
@@ -52,6 +75,7 @@ class TableViewController: UIViewController, UITableViewDelegate, UITableViewDat
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
         ])
     }
+    
     func numberOfSections(in tableView: UITableView) -> Int {
         return Section.allCases.count
     }
@@ -90,12 +114,28 @@ class TableViewController: UIViewController, UITableViewDelegate, UITableViewDat
             return defaultCell
             
         case .languages:
-            let progLang = allLanguages[indexPath.row]
-            let cell = tableView.dequeueReusableCell(withIdentifier: "ProgrammingLanguageCell", for: indexPath) as! ProgrammingLanguageCell
-            cell.configureCell(progLang)
+            let programmingLanguage = allLanguages[indexPath.row]
+            let cell = tableView.dequeueReusableCell(withIdentifier: TableViewCell.reuseIdentifier, for: indexPath) as! TableViewCell
+            cell.dataUpdater = self
+            cell.configure(programmingLanguage)
 
             return cell
         }
+    }
+    
+    func editState(in cell: TableViewCell, with state: Bool) {
+        guard let newIndexPath = tableView.indexPath(for: cell) else { return }
+        allLanguages[newIndexPath.row].isFavorite = state
+        
+    }
+    
+    func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
+        if let section = Section(rawValue: indexPath.section) {
+            if section == Section.indexes {
+                return false
+            }
+        }
+        return true
     }
     
     func tableView(_ tableView: UITableView, moveRowAt sourceIndexPath: IndexPath, to destinationIndexPath: IndexPath) {
@@ -106,14 +146,20 @@ class TableViewController: UIViewController, UITableViewDelegate, UITableViewDat
     
     func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         guard let section = Section(rawValue: indexPath.section) else { return }
+        
         if editingStyle == .delete {
-            switch section {
-            case .indexes: return
-            case .languages:
-                allLanguages.remove(at: indexPath.row)
-                tableView.deleteRows(at: [indexPath], with: .automatic)
+                switch section {
+                case .indexes:
+                    return
+                case .languages:
+                    deletedLanguages.append(allLanguages[indexPath.row])
+                    allLanguages.remove(at: indexPath.row)
+                    tableView.performBatchUpdates {
+                        tableView.deleteRows(at: [indexPath], with: .automatic)
+                        tableView.reloadSections([Section.indexes.rawValue], with: .automatic)
+                    }
+                }
             }
-        }
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
@@ -121,5 +167,6 @@ class TableViewController: UIViewController, UITableViewDelegate, UITableViewDat
         navigationController?.pushViewController(DetailViewController(languageInfo: progLang), animated: true)
         tableView.deselectRow(at: indexPath, animated: true)
     }
+    
 }
 

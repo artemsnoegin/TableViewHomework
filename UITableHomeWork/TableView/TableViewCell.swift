@@ -1,12 +1,16 @@
 //
-//  ProgrammingLanguageCell.swift
+//  TableViewCell.swift
 //  UITableHomeWork
 //
 //  Created by Артём Сноегин on 13.08.2025.
 //
 import UIKit
 
-class ProgrammingLanguageCell: UITableViewCell {
+class TableViewCell: UITableViewCell {
+    
+    static let reuseIdentifier = "TableViewCell"
+    
+    weak var dataUpdater: DataUpdaterDelegate?
     
     private let iconView = UIImageView()
     private let nameLabel = UILabel()
@@ -26,12 +30,12 @@ class ProgrammingLanguageCell: UITableViewCell {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func configureCell(_ progLang: ProgrammingLanguage) {
-        iconView.image = progLang.icon
-        nameLabel.text = progLang.name
-        useCaseLabel.text = progLang.useCase
-        likeButton.setImage(UIImage(systemName: progLang.isFavorite ? "heart.fill" : "heart", withConfiguration: buttonImageConfig), for: .normal)
-        isFavorite = progLang.isFavorite
+    func configure(_ programmingLanguage: ProgrammingLanguage) {
+        iconView.image = programmingLanguage.icon
+        nameLabel.text = programmingLanguage.name
+        useCaseLabel.text = programmingLanguage.useCase
+        likeButton.setImage(UIImage(systemName: programmingLanguage.isFavorite ? "heart.fill" : "heart", withConfiguration: buttonImageConfig), for: .normal)
+        isFavorite = programmingLanguage.isFavorite
     }
     
     private func setupLayout() {
@@ -72,5 +76,6 @@ class ProgrammingLanguageCell: UITableViewCell {
     @objc private func likeTapped() {
         isFavorite.toggle()
         likeButton.setImage(UIImage(systemName: isFavorite ? "heart.fill" : "heart", withConfiguration: buttonImageConfig), for: .normal)
+        dataUpdater?.editState(in: self, with: isFavorite)
     }
 }
